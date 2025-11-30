@@ -1,5 +1,4 @@
 # lucky
-<<<<<<< Updated upstream
 =======
 
 ## 11-30 아키텍처 및 API 명세
@@ -55,4 +54,3 @@
 * **Response:**
   * **200 OK**: 인증 및 인가 성공 시 "Admin Controller" 문자열 반환
   * **403 Forbidden**: 권한이 없거나 토큰이 유효하지 않을 경우
->>>>>>> Stashed changes

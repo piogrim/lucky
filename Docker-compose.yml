@@ -18,6 +18,9 @@ services:
   user-service:
     image: user-service:latest
     container_name: user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
     expose:
       - "8081"
     environment:
@@ -31,6 +34,9 @@ services:
   lucky-gateway:
     image: lucky-gateway:latest
     container_name: lucky-gateway
+    build:
+      context: ./lucky-gateway
+      dockerfile: Dockerfile
     expose:
       - "8000"
     environment:

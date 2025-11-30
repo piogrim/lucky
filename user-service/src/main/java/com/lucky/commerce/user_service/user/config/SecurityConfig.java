@@ -1,5 +1,6 @@
 package com.lucky.commerce.user_service.user.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lucky.commerce.user_service.user.jwt.JWTFilter;
 import com.lucky.commerce.user_service.user.jwt.JWTUtil;
 import com.lucky.commerce.user_service.user.jwt.LoginFilter;
@@ -23,10 +24,13 @@ public class SecurityConfig {
 
     private final JWTUtil jwtUtil;
 
+    private final ObjectMapper objectMapper;
+
     @Autowired
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil) {
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, ObjectMapper objectMapper) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -58,7 +62,7 @@ public class SecurityConfig {
         AuthenticationManager authManager = authenticationConfiguration.getAuthenticationManager();
 
         http
-                .addFilterAt(new LoginFilter(authManager, jwtUtil), UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(new LoginFilter(authManager, jwtUtil, objectMapper), UsernamePasswordAuthenticationFilter.class);
 
         http
                 .sessionManagement((session) -> session

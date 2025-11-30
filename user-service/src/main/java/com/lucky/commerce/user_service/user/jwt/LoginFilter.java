@@ -1,11 +1,14 @@
 package com.lucky.commerce.user_service.user.jwt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lucky.commerce.user_service.user.dto.CustomUserDetails;
+import com.lucky.commerce.user_service.user.dto.LoginDTO;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -20,16 +23,29 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
+    private final ObjectMapper objectMapper;
 
-    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
+    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, ObjectMapper objectMapper) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.objectMapper = objectMapper;
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        String username = obtainUsername(request);
-        String password = obtainPassword(request);
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException  {
+        //String username = obtainUsername(request);
+        //String password = obtainPassword(request);
+
+        LoginDTO loginDTO = null;
+
+        try {
+            loginDTO = objectMapper.readValue(request.getInputStream(), LoginDTO.class);
+        } catch (IOException e) {
+            throw new AuthenticationServiceException("Failed to parse the request body", e);
+        }
+
+        String username = loginDTO.getUsername();
+        String password = loginDTO.getPassword();
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
 
@@ -49,7 +65,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         String role = grantedAuthority.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, 60*60*10L);
+        String token = jwtUtil.createJwt(username, role, 60*60*60*10L);
 
         response.addHeader("Authorization", "Bearer " + token);
     }

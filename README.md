@@ -54,3 +54,15 @@
 * **Response:**
   * **200 OK**: 인증 및 인가 성공 시 "Admin Controller" 문자열 반환
   * **403 Forbidden**: 권한이 없거나 토큰이 유효하지 않을 경우
+
+#### 4) 토큰 재발급 (Reissue)
+* **URL:** `/user-service/reissue`
+* **Method:** `POST`
+* **설명:** Access Token이 만료되었을 때, 쿠키에 저장된 Refresh Token을 검증하여 새로운 Access Token을 발급받습니다. 새로운 발급받은 토큰의 Role은 ADMIN 권한이 아닌 USER 권한을 가집니다.(Refresh 토큰으로 재발급한 Access 토큰을 사용해 관리자 페이지(/user-service/admin) 접속 불가)
+* **Request Cookie:**
+  * `refresh`: `{로그인 시 발급받은 Refresh Token}`
+* **Response Header:**
+  * `Authorization`: `Bearer {새로 발급된 Access Token}`
+* **Response:**
+  * **200 OK**: 재발급 성공 (Header에 새 토큰 포함)
+  * **400 Bad Request**: 쿠키가 없거나, Refresh Token이 유효하지 않음 (만료, DB 불일치)

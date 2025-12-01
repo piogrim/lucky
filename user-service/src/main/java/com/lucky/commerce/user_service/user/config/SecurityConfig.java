@@ -1,6 +1,7 @@
 package com.lucky.commerce.user_service.user.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lucky.commerce.user_service.user.domain.RefreshTokenRepository;
 import com.lucky.commerce.user_service.user.jwt.JWTFilter;
 import com.lucky.commerce.user_service.user.jwt.JWTUtil;
 import com.lucky.commerce.user_service.user.jwt.LoginFilter;
@@ -26,11 +27,14 @@ public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
 
+    private final RefreshTokenRepository refreshTokenRepository;
+
     @Autowired
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, ObjectMapper objectMapper) {
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, ObjectMapper objectMapper, RefreshTokenRepository refreshTokenRepository) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
         this.objectMapper = objectMapper;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     @Bean
@@ -52,7 +56,7 @@ public class SecurityConfig {
 
         http
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/login","/","/join").permitAll()
+                        .requestMatchers("/login","/","/join","/reissue").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated());
 
@@ -62,7 +66,7 @@ public class SecurityConfig {
         AuthenticationManager authManager = authenticationConfiguration.getAuthenticationManager();
 
         http
-                .addFilterAt(new LoginFilter(authManager, jwtUtil, objectMapper), UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(new LoginFilter(authManager, jwtUtil, objectMapper, refreshTokenRepository), UsernamePasswordAuthenticationFilter.class);
 
         http
                 .sessionManagement((session) -> session

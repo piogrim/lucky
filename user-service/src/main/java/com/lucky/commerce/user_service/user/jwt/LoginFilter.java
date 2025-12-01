@@ -1,12 +1,16 @@
 package com.lucky.commerce.user_service.user.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lucky.commerce.user_service.user.domain.RefreshToken;
+import com.lucky.commerce.user_service.user.domain.RefreshTokenRepository;
 import com.lucky.commerce.user_service.user.dto.CustomUserDetails;
 import com.lucky.commerce.user_service.user.dto.LoginDTO;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,18 +28,17 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
     private final ObjectMapper objectMapper;
+    private final RefreshTokenRepository refreshRepository;
 
-    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, ObjectMapper objectMapper) {
+    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, ObjectMapper objectMapper, RefreshTokenRepository refreshRepository) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.objectMapper = objectMapper;
+        this.refreshRepository = refreshRepository;
     }
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException  {
-        //String username = obtainUsername(request);
-        //String password = obtainPassword(request);
-
         LoginDTO loginDTO = null;
 
         try {
@@ -47,7 +50,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String username = loginDTO.getUsername();
         String password = loginDTO.getPassword();
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password);
 
         return authenticationManager.authenticate(authToken);
     }
@@ -56,18 +59,33 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
 
         CustomUserDetails userDetails = (CustomUserDetails) authResult.getPrincipal();
-
         String username = userDetails.getUsername();
 
         Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority grantedAuthority = iterator.next();
-
         String role = grantedAuthority.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, 60*60*60*10L);
+        String access = jwtUtil.createAccessToken(username, role, 600000L);
+        String refresh = jwtUtil.createRefreshToken(username, 86400000L);
 
-        response.addHeader("Authorization", "Bearer " + token);
+        addRefreshEntity(username, refresh);
+
+        response.addHeader("Authorization", "Bearer " + access);
+        response.addCookie(createCookie(refresh));
+        response.setStatus(HttpStatus.OK.value());
+    }
+
+    private void addRefreshEntity(String username, String refresh) {
+        RefreshToken refreshToken = new RefreshToken(refresh, username);
+        refreshRepository.save(refreshToken);
+    }
+
+    //추후에 변경 가능
+    private Cookie createCookie(String value) {
+        Cookie cookie = new Cookie("refresh", value);
+        cookie.setMaxAge(24*60*60);
+        return cookie;
     }
 
     @Override

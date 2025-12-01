@@ -23,11 +23,21 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
     }
 
-    public String createJwt(String username, String role, Long expireMS){
-
+    public String createAccessToken(String username, String role, Long expireMS){
         return Jwts.builder()
+                .claim("category","access")
                 .claim("username", username)
                 .claim("role", role)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expireMS))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public String createRefreshToken(String username, Long expireMS){
+        return Jwts.builder()
+                .claim("category","refresh")
+                .claim("username", username)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expireMS))
                 .signWith(secretKey)

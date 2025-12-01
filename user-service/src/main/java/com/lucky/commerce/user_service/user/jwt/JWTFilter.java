@@ -3,6 +3,7 @@ package com.lucky.commerce.user_service.user.jwt;
 import com.lucky.commerce.user_service.user.domain.Member;
 import com.lucky.commerce.user_service.user.dto.CustomUserDetails;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +14,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Date;
 
 public class JWTFilter extends OncePerRequestFilter {
 
@@ -33,28 +33,38 @@ public class JWTFilter extends OncePerRequestFilter {
             return ;
         }
 
-        String token = authorization.split(" ")[1];
-        Claims claims = jwtUtil.getClaims(token);
+        String[] parts = authorization.split(" ");
 
-        if(claims.getExpiration().before(new Date())){
+        if (parts.length < 2) {
             filterChain.doFilter(request, response);
-            return ;
+            return;
         }
 
-        String username = claims.get("username",String.class);
-        String role = claims.get("role",String.class);
+        String accessToken = parts[1];
 
-        Member member = new Member();
-        member.setUsername(username);
-        member.setPassword("dummy");
-        member.setRole(role);
+        try {
+            Claims claims = jwtUtil.getClaims(accessToken);
 
-        CustomUserDetails customUserDetails = new CustomUserDetails(member);
+            String username = claims.get("username",String.class);
+            String role = claims.get("role",String.class);
 
-        Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+            Member member = new Member();
+            member.setUsername(username);
+            member.setPassword("dummy");
+            member.setRole(role);
 
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+            CustomUserDetails customUserDetails = new CustomUserDetails(member);
+            Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            filterChain.doFilter(request, response);
 
-        filterChain.doFilter(request, response);
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{error: access_token_expired}");
+            //refreshToken 발급 필요
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{error: invalid_token}");
+        }
     }
 }

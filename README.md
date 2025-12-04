@@ -3,7 +3,8 @@
 
 아키텍처 다이어그램
 
-<img width="1019" height="536" alt="스크린샷 2025-12-05 오전 3 39 05" src="https://github.com/user-attachments/assets/830aa5e2-19ea-480d-a2e1-c98d200861d5" />
+<img width="1028" height="540" alt="스크린샷 2025-12-05 오전 4 27 52" src="https://github.com/user-attachments/assets/749b3441-39ed-49dc-90cb-e257e874e5a7" />
+
 
 
 ## 2025.12.05 아키텍처 및 API 명세

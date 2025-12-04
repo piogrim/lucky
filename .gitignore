@@ -9,6 +9,7 @@ Thumbs.db
 *.env
 
 mysql_data/
+board_mysql_data/
 
 target/
 mvnw

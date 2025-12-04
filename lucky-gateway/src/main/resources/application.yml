@@ -13,3 +13,11 @@ spring:
             - Path=/user-service/**
           filters:
             - StripPrefix=1
+
+        - id: board-service
+          uri: ${BOARD_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/board-service/**
+          filters:
+            - StripPrefix=1
+            - AuthorizationHeaderFilter

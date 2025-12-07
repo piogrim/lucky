@@ -5,6 +5,7 @@ import com.lucky.board_service.board.post.dto.PostResponseDto;
 import com.lucky.board_service.board.post.dto.PostUpdateRequestDto;
 import com.lucky.board_service.board.post.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,5 +47,11 @@ public class PostController {
             @PathVariable Long id) {
         postService.delete(username, id);
         return ResponseEntity.ok(null);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<PostResponseDto>> getPosts(
+            @RequestParam(defaultValue = "0") int page){
+        return ResponseEntity.ok(postService.getPosts(page));
     }
 }

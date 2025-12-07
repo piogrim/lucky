@@ -6,9 +6,15 @@ import com.lucky.board_service.board.post.dto.PostCreateRequestDto;
 import com.lucky.board_service.board.post.dto.PostResponseDto;
 import com.lucky.board_service.board.post.dto.PostUpdateRequestDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class PostService {
 
     private final PostRepository postRepository;
@@ -18,6 +24,7 @@ public class PostService {
         this.postRepository = postRepository;
     }
 
+    @Transactional
     public PostResponseDto save(String username, PostCreateRequestDto requestDto) {
         Post post = new Post();
 
@@ -35,6 +42,7 @@ public class PostService {
         return new PostResponseDto(post);
     }
 
+    @Transactional
     public PostResponseDto update(String username, PostUpdateRequestDto requestDto, Long id) {
         Post post = postRepository.findById(id).orElseThrow(IllegalStateException::new);
 
@@ -48,6 +56,7 @@ public class PostService {
         return new PostResponseDto(post);
     }
 
+    @Transactional
     public void delete(String username, Long id) {
         Post post = postRepository.findById(id).orElseThrow(IllegalArgumentException::new);
 
@@ -56,5 +65,13 @@ public class PostService {
         }
 
         postRepository.delete(post);
+    }
+
+    public Page<PostResponseDto> getPosts(int pageNo) {
+        Pageable pageable = PageRequest.of(pageNo, 20, Sort.by(Sort.Direction.DESC, "id"));
+
+        Page<Post> postPage = postRepository.findAll(pageable);
+
+        return postPage.map(PostResponseDto::new);
     }
 }

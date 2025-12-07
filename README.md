@@ -81,7 +81,7 @@
 
 ---
 
-### 2. Board Service API
+### 3. Board Service API
 
 **Base URL:** `/board-service/api/posts`
 **공통 사항:** 모든 요청 헤더에 `Authorization: Bearer {Access_Token}`이 포함되어야 합니다. (Gateway에서 검증 후 유저 정보를 전달합니다.)
@@ -165,3 +165,127 @@
 * **Response:**
   * **200 OK:** 삭제 성공 (Body 없음)
   * **403 Forbidden:** 본인이 작성하지 않은 글을 삭제 시도 시
+
+### 4. Board Service Comment API
+
+**Base URL:** `/board-service/api`
+**공통 사항:** 모든 요청 헤더에 `Authorization: Bearer {Access_Token}`이 포함되어야 합니다.
+
+#### 1) 게시글별 댓글 목록 조회 (Read Comments by Post)
+- **URL:** `/posts/{postId}/comments`
+- **Method:** `GET`
+- **설명:** 특정 게시글(`postId`)에 달린 댓글 목록을 페이징하여 조회합니다. (기본 50개씩 최신순)
+- **Path Variable:**
+  - `postId`: 게시글 고유 번호 (Long)
+- **Query Parameter:**
+  - `page`: 페이지 번호 (0부터 시작, 기본값 0)
+- **Response:**
+  - **200 OK:** 조회 성공
+    ```json
+    {
+        "content": [
+            {
+                "id": 1,
+                "content": "댓글 내용입니다.",
+                "author": "user1"
+            }
+        ],
+        "pageable": {
+            "sort": {
+                "empty": false,
+                "sorted": true,
+                "unsorted": false
+            },
+            "offset": 0,
+            "pageNumber": 0,
+            "pageSize": 50,
+            "paged": true,
+            "unpaged": false
+        },
+        "last": true,
+        "totalPages": 1,
+        "totalElements": 1,
+        "size": 50,
+        "number": 0,
+        "sort": {
+            "empty": false,
+            "sorted": true,
+            "unsorted": false
+        },
+        "first": true,
+        "numberOfElements": 1,
+        "empty": false
+    }
+    ```
+
+#### 2) 댓글 작성 (Create Comment)
+- **URL:** `/posts/{postId}/comments`
+- **Method:** `POST`
+- **설명:** 특정 게시글(`postId`)에 새로운 댓글을 작성합니다. 작성자(`author`)는 **헤더의 토큰**에서 추출하여 자동 저장됩니다.
+- **Path Variable:**
+  - `postId`: 게시글 고유 번호 (Long)
+- **Request Body (JSON):**
+  ```json
+  {
+    "content": "댓글 내용입니다."
+  }
+- **Response:**
+  - **200 OK:** 작성 성공 (저장된 댓글 정보 반환)
+    ```json
+    {
+      "id": 102,
+      "content": "댓글 내용입니다.",
+      "author": "user1"
+    }
+    ```
+  - **400 Bad Request:** 존재하지 않는 게시글에 작성 시도 시
+
+#### 3) 댓글 단건 조회 (Read Comment)
+- **URL:** `/comments/{commentId}`
+- **Method:** `GET`
+- **설명:** 댓글 ID(`commentId`)를 통해 댓글 상세 내용을 조회합니다.
+- **Path Variable:**
+  - `commentId`: 댓글 고유 번호 (Long)
+- **Response:**
+  - **200 OK:** 조회 성공
+    ```json
+    {
+      "id": 102,
+      "content": "댓글 내용입니다.",
+      "author": "user1"
+    }
+    ```
+  - **400 Bad Request:** 존재하지 않는 댓글 조회 시
+
+#### 4) 댓글 수정 (Update Comment)
+- **URL:** `/comments/{commentId}`
+- **Method:** `PUT`
+- **설명:** 댓글을 수정합니다. **요청자(Token)**와 **댓글 작성자(DB)**가 일치해야만 수정이 가능합니다.
+- **Path Variable:**
+  - `commentId`: 수정할 댓글 고유 번호
+- **Request Body (JSON):**
+  ```json
+  {
+    "content": "수정된 댓글 내용"
+  }
+  ```
+  - **Response:**
+  - **200 OK:** 수정 성공 (수정된 댓글 정보 반환)
+    ```json
+    {
+      "id": 102,
+      "content": "수정된 댓글 내용",
+      "author": "user1"
+    }
+    ```
+  - **403 Forbidden:** 본인이 작성하지 않은 댓글을 수정 시도 시
+
+#### 5) 댓글 삭제 (Delete Comment)
+- **URL:** `/comments/{commentId}`
+- **Method:** `DELETE`
+- **설명:** 댓글을 삭제합니다. **요청자(Token)**와 **댓글 작성자(DB)**가 일치해야만 삭제가 가능합니다.
+- **Path Variable:**
+  - `commentId`: 삭제할 댓글 고유 번호
+- **Response:**
+  - **200 OK:** 삭제 성공 (Body 없음)
+  - **403 Forbidden:** 본인이 작성하지 않은 댓글을 삭제 시도 시

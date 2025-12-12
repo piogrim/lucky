@@ -289,3 +289,45 @@
 - **Response:**
   - **200 OK:** 삭제 성공 (Body 없음)
   - **403 Forbidden:** 본인이 작성하지 않은 댓글을 삭제 시도 시
+
+### 5. Board Service API - Like
+
+#### 1) 좋아요 등록 (Like)
+* **URL:** `/api/posts/{id}/likes`
+* **Method:** `POST`
+* **설명:** 게시글에 좋아요를 등록합니다. MSA 환경이므로 Gateway에서 변환된 유저 ID(`X-User-Id`)를 헤더로 받아 처리합니다. 이미 좋아요를 누른 경우 예외가 발생합니다.
+* **Request Header:**
+  * `X-User-Id`: `{User PK (Long)}` (Gateway에서 JWT 파싱 후 전달)
+* **Path Variable:**
+  * `id`: 좋아요를 누를 게시글의 ID (Post ID)
+* **Request Body:**
+  * `None` (Body는 비워둠)
+* **Response:**
+  * **200 OK**: 등록 성공
+  * **400 Bad Request**: 이미 좋아요를 누른 상태일 경우 ("이미 좋아요를 눌렀습니다.")
+* **Response Body (JSON):**
+
+  ```json
+  {
+    "postId": 1,
+    "memberId": 123
+  }
+
+#### 2) 좋아요 취소 (Unlike)
+* **URL:** `/api/posts/{id}/likes`
+* **Method:** `DELETE`
+* **설명:** 등록된 좋아요를 취소합니다. 좋아요 기록이 없는 경우 예외를 반환합니다.
+* **Request Header:**
+  * `X-User-Id`: `{User PK (Long)}`
+* **Path Variable:**
+  * `id`: 좋아요를 취소할 게시글의 ID (Post ID)
+* **Response:**
+  * **200 OK**: 취소 성공
+  * **403 Forbidden**: 좋아요를 누른 적이 없는 경우 ("좋아요를 누른 적이 없습니다.")
+* **Response Body (JSON):**
+
+  ```json
+  {
+    "postId": 1,
+    "memberId": 123
+  }

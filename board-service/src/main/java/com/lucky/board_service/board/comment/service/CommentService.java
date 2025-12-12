@@ -31,7 +31,7 @@ public class CommentService {
     @Transactional
     public CommentResponseDto saveComment(String username, Long postId, CommentCreateRequestDto requestDto) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 게시물이 더 이상 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalStateException("해당 게시물이 더 이상 존재하지 않습니다."));
 
         Comment comment = new Comment();
         comment.setPost(post);
@@ -44,14 +44,14 @@ public class CommentService {
 
     public CommentResponseDto getComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalStateException("해당 댓글이 존재하지 않습니다."));
         return new CommentResponseDto(comment);
     }
 
     @Transactional
     public CommentResponseDto updateComment(String username, Long commentId, CommentUpdateRequestDto requestDto) {
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalStateException("해당 댓글이 존재하지 않습니다."));
 
         if(!comment.getAuthor().equals(username)) {
             throw new IllegalStateException("작성자만 수정할 수 있습니다.");

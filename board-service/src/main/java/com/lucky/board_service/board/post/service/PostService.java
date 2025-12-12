@@ -38,7 +38,7 @@ public class PostService {
     }
 
     public PostResponseDto findById(Long id) {
-        Post post = postRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Post post = postRepository.findById(id).orElseThrow(IllegalStateException::new);
         return new PostResponseDto(post);
     }
 
@@ -47,7 +47,7 @@ public class PostService {
         Post post = postRepository.findById(id).orElseThrow(IllegalStateException::new);
 
         if(!post.getAuthor().equals(username)){
-            throw new IllegalArgumentException("작성자만 수정할 수 있습니다.");
+            throw new IllegalStateException("작성자만 수정할 수 있습니다.");
         }
 
         post.setTitle(requestDto.getTitle());
@@ -61,7 +61,7 @@ public class PostService {
         Post post = postRepository.findById(id).orElseThrow(IllegalArgumentException::new);
 
         if(!post.getAuthor().equals(username)){
-            throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
+            throw new IllegalStateException("작성자만 삭제할 수 있습니다.");
         }
 
         postRepository.delete(post);

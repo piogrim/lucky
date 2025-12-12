@@ -25,6 +25,15 @@ public class GatewayJwtUtil {
                 .get("username", String.class);
     }
 
+    public Long getUserId(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("userId", Long.class);
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parser()

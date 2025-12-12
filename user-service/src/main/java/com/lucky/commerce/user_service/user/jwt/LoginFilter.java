@@ -60,13 +60,14 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         CustomUserDetails userDetails = (CustomUserDetails) authResult.getPrincipal();
         String username = userDetails.getUsername();
+        Long userId = userDetails.getId();
 
         Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority grantedAuthority = iterator.next();
         String role = grantedAuthority.getAuthority();
 
-        String access = jwtUtil.createAccessToken(username, role, 600000L);
+        String access = jwtUtil.createAccessToken(userId, username, role, 600000L);
         String refresh = jwtUtil.createRefreshToken(username, 86400000L);
 
         addRefreshEntity(username, refresh);

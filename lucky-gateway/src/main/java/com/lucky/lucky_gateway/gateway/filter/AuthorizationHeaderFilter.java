@@ -43,9 +43,11 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
             }
 
             String username = jwtUtil.getUsername(jwt);
+            Long userId = jwtUtil.getUserId(jwt);
 
             ServerHttpRequest newRequest = request.mutate()
                     .header("X-User-Name", username)
+                    .header("X-User-Id", userId.toString())
                     .build();
 
             return chain.filter(exchange.mutate().request(newRequest).build());

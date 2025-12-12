@@ -29,6 +29,7 @@ public class ReissueService {
         }
 
         String username = claims.get("username", String.class);
+        Long id = claims.get("userId", Long.class);
 
         if(claims.getExpiration().before(new Date())){
             return null;
@@ -44,6 +45,6 @@ public class ReissueService {
             return null;
         }
 
-        return jwtUtil.createAccessToken(username,"ROLE_USER",600000L);
+        return jwtUtil.createAccessToken(id, username,"ROLE_USER",600000L);
     }
 }

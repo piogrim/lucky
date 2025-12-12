@@ -24,5 +24,9 @@ gradlew.bat
 *.class
 *.jar
 *.war
+*.json
 
 *.log
+
+notification-service/
+ocr-service/

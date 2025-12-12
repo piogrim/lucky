@@ -23,8 +23,9 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
     }
 
-    public String createAccessToken(String username, String role, Long expireMS){
+    public String createAccessToken(Long userId, String username, String role, Long expireMS){
         return Jwts.builder()
+                .claim("userId", userId)
                 .claim("category","access")
                 .claim("username", username)
                 .claim("role", role)

@@ -1,11 +1,12 @@
 package com.lucky.board_service.board.post.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.lucky.board_service.board.posthashtag.domain.PostHashtag;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -20,4 +21,11 @@ public class Post {
     private String content;
 
     private String author;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostHashtag> postHashtags = new ArrayList<>();
+
+    public void cleanPostHashtags() {
+        postHashtags.clear();
+    }
 }

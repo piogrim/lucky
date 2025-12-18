@@ -87,9 +87,9 @@
 **공통 사항:** 모든 요청 헤더에 `Authorization: Bearer {Access_Token}`이 포함되어야 합니다. (Gateway에서 검증 후 유저 정보를 전달합니다.)
 
 #### 1) 게시글 단건 조회 (Read Post)
-* **URL:** `/{id}`
+* **URL:** `/api/posts/{id}`
 * **Method:** `GET`
-* **설명:** 게시글 ID(`id`)를 통해 상세 내용을 조회합니다.
+* **설명:** 게시글 ID(`id`)를 통해 상세 내용과 **해시태그 목록**을 조회합니다.
 * **Path Variable:**
   - `id`: 게시글 고유 번호 (Long)
 * **Response (JSON):**
@@ -100,58 +100,80 @@
     "id": 15,
     "author": "user1",
     "title": "테스트 제목",
-    "content": "테스트 내용입니다."
+    "content": "테스트 내용입니다.",
+    "hashTags": [
+      "Spring",
+      "Java",
+      "Backend"
+    ]
   }
-  ```
-  * **400 Bad Request:** 존재하지 않는 게시글 조회 시
+* **400 Bad Request:** 존재하지 않는 게시글 조회 시
 
 #### 2) 게시글 작성 (Create Post)
 * **URL:** `/` (Base URL)
 * **Method:** `POST`
-* **설명:** 새로운 게시글을 작성합니다. 작성자(`author`)는 **헤더의 토큰**에서 추출하여 자동 저장됩니다.
+* **설명:** 새로운 게시글을 작성하고 해시태그를 등록합니다. 작성자(`author`)는 헤더의 `X-User-Name`에서 추출하여 자동 저장됩니다.
+* **Headers:**
+  - `X-User-Name`: 작성자 아이디 (필수)
 * **Request Body (JSON):**
-
   ```json
   {
     "title": "새로운 게시글 제목",
-    "content": "게시글 본문 내용"
+    "content": "게시글 본문 내용",
+    "hashTags": [
+      "Spring",
+      "Tips"
+    ]
   }
   ```
   * **Response (JSON):**
-  * **200 OK:** 작성 성공 (저장된 게시글 정보 반환)
+  * **200 OK:** 작성 성공 (저장된 게시글 정보 및 해시태그 반환)
 
     ```json
     {
       "id": 16,
       "author": "user1",
       "title": "새로운 게시글 제목",
-      "content": "게시글 본문 내용"
+      "content": "게시글 본문 내용",
+      "hashTags": [
+        "Spring",
+        "Tips"
+      ]
     }
     ```
 
 #### 3) 게시글 수정 (Update Post)
-* **URL:** `/{id}`
+* **URL:** `/api/posts/{id}`
 * **Method:** `PUT`
-* **설명:** 게시글을 수정합니다. **요청자(Token)**와 **게시글 작성자(DB)**가 일치해야만 수정이 가능합니다.
+* **설명:** 게시글의 제목, 내용, 해시태그를 수정합니다. 요청 헤더의 작성자(`X-User-Name`)와 DB의 게시글 작성자가 일치해야만 수정이 가능합니다. (기존 해시태그는 초기화되고 새로 입력한 목록으로 교체됩니다.)
 * **Path Variable:**
   * `id`: 수정할 게시글 고유 번호
+* **Headers:**
+  - `X-User-Name`: 작성자 아이디 (필수)
 * **Request Body (JSON):**
-
   ```json
   {
     "title": "수정된 제목",
-    "content": "수정된 내용"
+    "content": "수정된 내용",
+    "hashTags": [
+      "Spring",
+      "Update"
+    ]
   }
   ```
   * **Response:**
-  * **200 OK:** 수정 성공 (수정된 게시글 정보 반환)
+  * **200 OK:** 수정 성공 (수정된 게시글 정보 및 해시태그 반환)
   
     ```json
     {
       "id": 16,
       "author": "user1",
       "title": "수정된 제목",
-      "content": "수정된 내용"
+      "content": "수정된 내용",
+      "hashTags": [
+        "Spring",
+        "Update"
+      ]
     }
     ```
   * **403 Forbidden:** 본인이 작성하지 않은 글을 수정 시도 시

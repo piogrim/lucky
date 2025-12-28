@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: board-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: board-service
+  template:
+    metadata:
+      labels:
+        app: board-service
+    spec:
+      containers:
+        - name: board-service
+          image: beanbeansb/lucky-board-service:latest 
+          ports:
+            - containerPort: 8082 # 로컬에서 쓰던 값
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://board-service-mysql:3306/board_service?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "1234"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: board-service
+spec:
+  type: NodePort # 외부(로컬)에서 테스트하기 위해 NodePort 사용 (나중엔 ClusterIP로 변경)
+  selector:
+    app: board-service
+  ports:
+    - port: 8080
+      targetPort: 8082
+      nodePort: 30001 # 로컬호스트:30001로 접근 가능하게 고정

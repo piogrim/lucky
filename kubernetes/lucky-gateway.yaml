@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lucky-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lucky-gateway
+  template:
+    metadata:
+      labels:
+        app: lucky-gateway
+    spec:
+      containers:
+        - name: lucky-gateway
+          image: beanbeansb/lucky-gateway:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: USER_SERVICE_URL
+              value: "http://user-service:8080"
+            - name: BOARD_SERVICE_URL
+              value: "http://board-service:8080"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lucky-secret
+                  key: REAL_JWT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lucky-gateway
+spec:
+  selector:
+    app: lucky-gateway
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: beanbeansb/lucky-user-service:latest 
+          ports:
+            - containerPort: 8081 # 로컬에서 쓰던 값
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://user-service-mysql:3306/user_service?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "1234"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lucky-secret
+                  key: REAL_JWT_SECRET
+            - name: SPRING_DATA_REDIS_HOST
+              value: "user-service-redis"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  type: NodePort # 외부(로컬)에서 테스트하기 위해 NodePort 사용 (나중엔 ClusterIP로 변경)
+  selector:
+    app: user-service
+  ports:
+    - port: 8080
+      targetPort: 8081
+      nodePort: 30002 # 로컬호스트:30001로 접근 가능하게 고정

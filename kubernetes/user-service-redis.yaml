@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: user-service-redis-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service-redis
+spec:
+  selector:
+    matchLabels:
+      app: user-service-redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: user-service-redis
+    spec:
+      containers:
+      - image: redis:latest
+        name: user-service-redis
+        args: ["redis-server", "--appendonly", "yes"]
+        ports:
+        - containerPort: 6379
+          name: redis
+        volumeMounts:
+        - name: user-service-redis-persistent-storage
+          mountPath: /data
+      volumes:
+      - name: user-service-redis-persistent-storage
+        persistentVolumeClaim:
+          claimName: user-service-redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service-redis
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: user-service-redis
+  type: ClusterIP

@@ -3,14 +3,14 @@
 
 아키텍처 다이어그램
 
-<img width="1028" height="540" alt="스크린샷 2025-12-05 오전 4 27 52" src="https://github.com/user-attachments/assets/749b3441-39ed-49dc-90cb-e257e874e5a7" />
+![alt text](<스크린샷 2025-12-29 오전 5.55.39.png>)
 
 
-
-## 2025.12.19 아키텍처 및 API 명세
+## 2025.12.29 아키텍처 및 API 명세
 
 ### 1. 아키텍처 흐름
 모든 요청은 **Nginx**를 통해 들어와 **Gateway**를 거쳐 **User Service**, **Board Service**로 전달됩니다.
+ **쿠버네티스를 도입함으로 분산 환경에서 기능하는 것이 가능해졌습니다.**
 
 1. **Nginx (Port 80)**
    - 모든 외부 HTTP 요청을 수신
@@ -42,6 +42,7 @@
     "username" : "user1",
     "password" : "1234"
   }
+  ```
   
 #### 2) 로그인 (Login)
 * **URL:** `/user-service/login`
@@ -54,6 +55,7 @@
     "username" : "user1",
     "password" : "1234"
   }
+  ```
 * **Response Header:**
   * `Authorization`: `Bearer {발급된 토큰값}`
 
@@ -107,6 +109,7 @@
       "Backend"
     ]
   }
+  ```
 * **400 Bad Request:** 존재하지 않는 게시글 조회 시
 
 #### 2) 게시글 작성 (Create Post)
@@ -251,6 +254,7 @@
   {
     "content": "댓글 내용입니다."
   }
+  ```
 - **Response:**
   - **200 OK:** 작성 성공 (저장된 댓글 정보 반환)
     ```json
@@ -334,6 +338,7 @@
     "postId": 1,
     "memberId": 123
   }
+  ```
 
 #### 2) 좋아요 취소 (Unlike)
 * **URL:** `/api/posts/{id}/likes`
@@ -353,3 +358,22 @@
     "postId": 1,
     "memberId": 123
   }
+  ```
+
+## Minikube 설정
+
+본 프로젝트는 **Minikube** 클러스터 환경에서 운영되며 Nginx 설정 및 보안 환경 변수를 효율적으로 관리하기 위해 쿠버네티스의 ConfigMap과 Secret을 사용합니다.
+
+### 1. Nginx 설정용 ConfigMap 생성
+Reverse Proxy 역할을 하는 Nginx의 설정 파일(`nginx.conf`)을 관리합니다.
+
+```bash
+kubectl create configmap nginx-config --from-file=nginx.conf
+```
+
+### 2. 보안 환경 변수 관리 (Secret)
+JWT Secret Key는 .env 파일에 저장하고 이를 쿠버네티스 Secret으로 변환해 컨테이너에 주입합니다.
+
+```bash
+kubectl create secret generic lucky-secret --from-env-file=.env
+```

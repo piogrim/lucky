@@ -3,7 +3,7 @@
 
 아키텍처 다이어그램
 
-![alt text](<스크린샷 2025-12-29 오전 5.55.39.png>)
+<img width="1093" height="656" alt="스크린샷 2025-12-29 오전 5 55 39" src="https://github.com/user-attachments/assets/45827d5f-f4b9-4c48-b270-34491caeed89" />
 
 
 ## 2025.12.29 아키텍처 및 API 명세

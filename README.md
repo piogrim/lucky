@@ -115,7 +115,7 @@
 #### 2) 게시글 작성 (Create Post)
 * **URL:** `/` (Base URL)
 * **Method:** `POST`
-* **설명:** 새로운 게시글을 작성하고 해시태그를 등록합니다. 작성자(`author`)는 헤더의 `X-User-Name`에서 추출하여 자동 저장됩니다.
+* **설명:** 새로운 게시글을 작성하고 해시태그를 등록합니다. 작성자(`author`)는 헤더의 `X-User-Name`에서 추출하여 저장됩니다.
 * **Headers:**
   - `X-User-Name`: 작성자 아이디 (필수)
 * **Request Body (JSON):**

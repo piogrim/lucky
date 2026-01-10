@@ -3,7 +3,8 @@
 
 아키텍처 다이어그램
 
-<img width="1093" height="656" alt="스크린샷 2025-12-29 오전 5 55 39" src="https://github.com/user-attachments/assets/45827d5f-f4b9-4c48-b270-34491caeed89" />
+<img width="883" height="654" alt="스크린샷 2026-01-11 오전 5 31 42" src="https://github.com/user-attachments/assets/0d04c36c-ce4a-4403-b691-98f892adf097" />
+
 일반적으로 쿠버네티스에서 컨테이너 런타임으로 containerd를 사용하나 본 프로젝트는 minikube를 이용하고 컨테이너 런타임으로 docker를 사용했습니다.
 
 ## 2025.12.29 아키텍처 및 API 명세

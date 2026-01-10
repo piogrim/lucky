@@ -377,3 +377,46 @@ JWT Secret Key는 .env 파일에 저장하고 이를 쿠버네티스 Secret으�
 ```bash
 kubectl create secret generic lucky-secret --from-env-file=.env
 ```
+
+=====
+
+### 해당 부분부터는 현재는 도커 컴포즈로 띄우고 추후에 쿠버네티스로 전환할 예정입니다.
+
+### 6. Order Service API
+
+#### 1) 주문 생성 (Create Order)
+* **URL:** `/api/orders`
+* **Method:** `POST`
+* **Header:**  
+  * `X-User-Id` (필수, 사용자 식별값)
+* **설명:**  
+  요청 헤더의 사용자 ID(`X-User-Id`)와 요청 본문의 주문 정보를 기반으로 주문을 생성합니다.   
+  주문 생성에 성공하면 주문 ID와 총 금액을 반환합니다.
+* **Request Body (JSON):**
+
+  ```json
+  {
+    "productId": 1,
+    "quantity": 5,
+    "totalPrice": 50000
+  }
+  ```
+* **Response:**
+  * **200 OK**: 주문 생성 성공
+* **Response Body (JSON):**
+
+  ```json
+  {
+    "orderId": 1,
+    "totalPrice": 50000
+  }
+  ```
+
+Kafka 연동
+주문 생성 API(/api/orders)가 성공적으로 처리되면,
+Order Service는 주문 생성 이벤트를 Kafka로 발행합니다.
+
+이때 Kafka로 전달되는 메시지는 OrderKafkaDto를 기반으로 생성됩니다.
+
+Kafka 메시지 목적
+Inventory Service(Consumer): 상품의 재고 차감

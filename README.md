@@ -7,7 +7,7 @@
 
 일반적으로 쿠버네티스에서 컨테이너 런타임으로 containerd를 사용하나 본 프로젝트는 minikube를 이용하고 컨테이너 런타임으로 docker를 사용했습니다.
 
-## 2025.12.29 아키텍처 및 API 명세
+## 2025.1.11 아키텍처 및 API 명세(Order-service, Inventory-service 추가)
 
 ### 1. 아키텍처 흐름
 모든 요청은 **Nginx**를 통해 들어와 **Gateway**를 거쳐 **User Service**, **Board Service**로 전달됩니다.

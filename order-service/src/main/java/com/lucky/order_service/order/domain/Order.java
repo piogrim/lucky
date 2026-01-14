@@ -1,6 +1,5 @@
 package com.lucky.order_service.order.domain;
 
-import com.lucky.order_service.orderItem.domain.OrderItem;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

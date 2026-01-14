@@ -6,7 +6,7 @@ import com.lucky.order_service.order.domain.OrderStatus;
 import com.lucky.order_service.order.dto.OrderCreateRequestDto;
 import com.lucky.order_service.order.dto.OrderKafkaDto;
 import com.lucky.order_service.order.dto.OrderResponseDto;
-import com.lucky.order_service.orderItem.domain.OrderItem;
+import com.lucky.order_service.order.domain.OrderItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;

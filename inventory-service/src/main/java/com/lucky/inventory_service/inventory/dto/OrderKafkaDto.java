@@ -9,4 +9,5 @@ public class OrderKafkaDto {
     private Long orderId;
     private Long productId;
     private Long quantity;
+    private Long productPrice;
 }

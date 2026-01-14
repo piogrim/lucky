@@ -7,7 +7,18 @@
 
 일반적으로 쿠버네티스에서 컨테이너 런타임으로 containerd를 사용하나 본 프로젝트는 minikube를 이용하고 컨테이너 런타임으로 docker를 사용했습니다.
 
-## 2025.12.29 아키텍처 및 API 명세
+## Kubernetes를 도입하기까지
+
+Docker → Docker-compose → Kubernetes
+
+• 환경(개발, 테스트, 배포) 종속성 문제 해결을 위해 Docker 도입
+
+• 기존 명령형 방식을 통한 도커 컨테이너 생성은 반복(비효율)적이고 명령어 작성시 실수할 수 있는 문제가 존재 → Docker-Compose 도입
+
+• Docker-Compose는 단일 호스트머신에서만 동작할 수 있기 때문에 추후 대규모 트래픽 처리를 위한 분산 환경에서는 사용이 불가능 → 분산 환경에서의 배포 관리를 위한 Kubernetes 도입
+
+
+## 2026.1.11 아키텍처 및 API 명세(Order-service, Inventory-service 추가)
 
 ### 1. 아키텍처 흐름
 모든 요청은 **Nginx**를 통해 들어와 **Gateway**를 거쳐 **User Service**, **Board Service**로 전달됩니다.

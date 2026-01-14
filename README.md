@@ -408,9 +408,23 @@ kubectl create secret generic lucky-secret --from-env-file=.env
 
   ```json
   {
-    "productId": 1,
-    "quantity": 5,
-    "totalPrice": 50000
+    "items": [
+      {
+        "productId": 11,
+        "productPrice": 2500,
+        "quantity": 10
+      },
+      {
+        "productId": 22,
+        "productPrice": 55000,
+        "quantity": 1
+      },
+      {
+        "productId": 35,
+        "productPrice": 12000,
+        "quantity": 3
+      }
+    ]
   }
   ```
 * **Response:**
@@ -419,8 +433,8 @@ kubectl create secret generic lucky-secret --from-env-file=.env
 
   ```json
   {
-    "orderId": 1,
-    "totalPrice": 50000
+    "orderId": 28,
+    "totalPrice": 116000
   }
   ```
 

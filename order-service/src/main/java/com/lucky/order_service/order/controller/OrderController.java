@@ -3,20 +3,16 @@ package com.lucky.order_service.order.controller;
 import com.lucky.order_service.order.dto.OrderCreateRequestDto;
 import com.lucky.order_service.order.dto.OrderResponseDto;
 import com.lucky.order_service.order.service.OrderServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/orders")
+@RequiredArgsConstructor
 public class OrderController {
 
     private final OrderServiceImpl orderServiceImpl;
-
-    @Autowired
-    public OrderController(OrderServiceImpl orderServiceImpl) {
-        this.orderServiceImpl = orderServiceImpl;
-    }
 
     @PostMapping
     public ResponseEntity<OrderResponseDto> createOrder(

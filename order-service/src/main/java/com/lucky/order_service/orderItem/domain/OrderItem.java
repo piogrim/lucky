@@ -19,12 +19,15 @@ public class OrderItem {
 
     private Long quantity;
 
+    private Long price;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private Order order;
 
-    public OrderItem(Long productId, Long quantity, Order order) {
+    public OrderItem(Long productId, Long quantity, Long price, Order order) {
         this.productId = productId;
         this.quantity = quantity;
+        this.price = price;
         this.order = order;
     }
 }

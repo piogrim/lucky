@@ -31,4 +31,8 @@ public class Inventory {
         }
         this.quantity -= count;
     }
+
+    public void increase(Long count) {
+        this.quantity += count;
+    }
 }

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 class DataInit implements CommandLineRunner {
-
     private final InventoryRepository inventoryRepository;
 
     @Autowired

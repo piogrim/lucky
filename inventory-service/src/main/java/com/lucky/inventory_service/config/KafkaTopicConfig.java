@@ -1,4 +1,4 @@
-package com.lucky.order_service.config;
+package com.lucky.inventory_service.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
@@ -9,16 +9,8 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
 
     @Bean
-    public NewTopic orderTopic(){
-        return TopicBuilder.name("order_create")
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic orderTopic2(){
-        return TopicBuilder.name("inventory_rollback")
+    public NewTopic inventoryTopic() {
+        return TopicBuilder.name("inventory_result")
                 .partitions(3)
                 .replicas(1)
                 .build();

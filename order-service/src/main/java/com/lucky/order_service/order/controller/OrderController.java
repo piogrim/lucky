@@ -20,4 +20,11 @@ public class OrderController {
             @RequestBody OrderCreateRequestDto requestDto) {
         return ResponseEntity.ok(orderServiceImpl.saveOrder(id, requestDto));
     }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponseDto> getOrder(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable Long orderId) {
+        return ResponseEntity.ok(orderServiceImpl.getOrder(userId, orderId));
+    }
 }

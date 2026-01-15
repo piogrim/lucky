@@ -7,20 +7,7 @@
 
 일반적으로 쿠버네티스에서 컨테이너 런타임으로 containerd를 사용하나 본 프로젝트는 minikube를 이용하고 컨테이너 런타임으로 docker를 사용했습니다.
 
-## Kubernetes를 도입하기까지
-
-Docker → Docker-compose → Kubernetes
-
-• 환경(개발, 테스트, 배포) 종속성 문제 해결을 위해 Docker 도입
-
-• 기존 명령형 방식을 통한 도커 컨테이너 생성은 반복(비효율)적이고 명령어 작성시 실수할 수 있는 문제가 존재 → Docker-Compose 도입
-
-• Docker-Compose는 단일 호스트머신에서만 동작할 수 있기 때문에 추후 대규모 트래픽 처리를 위한 분산 환경에서는 사용이 불가능 → 분산 환경에서의 배포 관리를 위한 Kubernetes 도입
-
-
-## 2026.1.11 아키텍처 및 API 명세(Order-service, Inventory-service 추가)
-
-### 1. 아키텍처 흐름
+### 아키텍처 흐름
 모든 요청은 **Nginx**를 통해 들어와 **Gateway**를 거쳐 **User Service**, **Board Service**로 전달됩니다.
  **쿠버네티스를 도입함으로 분산 환경에서 기능하는 것이 가능해졌습니다.**
 
@@ -39,7 +26,168 @@ Docker → Docker-compose → Kubernetes
    - Gateway가 검증하고 넘겨준 X-User-Name 헤더를 통해 작성자를 식별
    - 게시글 CRUD 로직 수행
 
+## Kubernetes를 도입하기까지
+
+Docker → Docker-compose → Kubernetes
+
+• 환경(개발, 테스트, 배포) 종속성 문제 해결을 위해 Docker 도입
+
+• 기존 명령형 방식을 통한 도커 컨테이너 생성은 반복(비효율)적이고 명령어 작성시 실수할 수 있는 문제가 존재 → Docker-Compose 도입
+
+• Docker-Compose는 단일 호스트머신에서만 동작할 수 있기 때문에 추후 대규모 트래픽 처리를 위한 분산 환경에서는 사용이 불가능 → 분산 환경에서의 배포 관리를 위한 Kubernetes 도입
+
+
+## 2026.1.15 아키텍처 및 API 명세(Order-service, Inventory-service 추가)
+
+### Order-Service와 Inventory-Service 그리고 Kafka
+
+### 요구 사항
+1. **다중 상품 주문**  
+   사용자는 여러 종류의 상품을 한 번에 주문할 수 있어야 한다.
+2. **주문 조회**  
+   사용자는 자신의 주문 진행 상태(`PENDING`, `SUCCESS`, `CANCELED`)를 조회할 수 있어야 한다.
+3. **트랜잭션 보장**  
+   주문은 재고 확인 및 차감 과정을 거쳐야 하며,  
+   부분 실패 없이 원자적(Atomic)으로 처리되어야 한다.
+
 ---
+
+### 구현 방식
+
+### 1. 주문 생성
+- 주문 서비스(Order-Service)는 요청받은 주문을  
+  `PENDING` 상태로 생성 및 저장한다.
+
+### 2. 이벤트 발행
+- 주문 서비스는 주문에 포함된 각 상품 정보를  
+  Kafka의 `order_create` 토픽으로 발행한다.
+
+### 3. 재고 처리
+- 재고 서비스(Inventory-Service)는 Kafka 메시지를 소비하여  
+  각 상품에 대해 재고 차감을 수행한다.
+
+### 4. 롤백
+- 여러 상품 중 하나라도 재고 차감에 실패할 경우:
+  - 이미 차감에 성공한 다른 상품들의 재고를  
+    롤백합니다.
+
+### 5. 주문 상태 업데이트
+- 재고 차감 실패 시
+  - 주문 서비스에 실패 결과 전송
+  - 주문 상태를 `CANCELED`로 업데이트
+- 재고 차감 성공 시
+  - 주문 서비스에 성공 결과 전송
+  - 주문 상태를 `SUCCESS`로 업데이트
+
+---
+
+### 주문 조회
+- 주문 조회 시,  
+  재고 서비스가 Kafka를 통해 전달한 결과 메시지를 기반으로  
+  주문 상태가 `SUCCESS` 또는 `CANCELED`인 주문을 확인할 수 있다.
+
+---
+
+### Kafka를 사용한 이유
+
+1. 주문 서비스와 재고 서비스는 서로 다른 생명 주기를 가지며  
+   별개의 컨테이너에서 실행
+2. 별개의 컨테이너에서 실행되므로  
+   주문 서비스와 재고 서비스 간 통신 수단이 필요
+3. 동기 방식으로 주문 서비스가 재고 서비스의 API를 직접 호출할 경우:
+   - 서비스 간 결합도가 높아짐
+   - 재고 서비스 장애 시 주문 서비스도 영향을 받음.
+4. 이러한 문제를 해결하기 위해  
+   중간에 브로커를 두는 비동기 메시지 기반 통신 방식을 선택
+5. RabbitMQ와 Kafka 중  
+   대량 데이터 처리에 유리한 Kafka를 선택
+
+---
+
+
+### 1. Order Service API
+
+#### 1) 주문 생성 (Create Order)
+* **URL:** `/api/orders`
+* **Method:** `POST`
+* **Header:**  
+  * `X-User-Id` (필수, 사용자 식별값)
+* **설명:**  
+  요청 헤더의 사용자 ID(`X-User-Id`)와 요청 본문의 주문 정보를 기반으로 주문을 생성합니다.   
+  주문 생성에 성공하면 주문 ID와 총 금액을 반환합니다.
+* **Request Body (JSON):**
+
+  ```json
+  {
+    "items": [
+      {
+        "productId": 11,
+        "productPrice": 2500,
+        "quantity": 10
+      },
+      {
+        "productId": 22,
+        "productPrice": 55000,
+        "quantity": 1
+      },
+      {
+        "productId": 35,
+        "productPrice": 12000,
+        "quantity": 3
+      }
+    ]
+  }
+  ```
+* **Response:**
+  * **200 OK**: 주문 생성 성공
+* **Response Body (JSON):**
+
+  ```json
+  {
+    "orderId": 3,
+    "totalPrice": 1362000,
+    "orderStatus": "PENDING"
+  }
+  ```
+
+#### 2) 주문 조회 (Read Order)
+* **URL:** `/api/orders/{orderId}`
+* **Method:** `GET`
+* **Header:**  
+  * `X-User-Id` (필수, 요청하는 사용자 식별값 — 본인 주문만 조회 가능)
+* **Path Variables:**  
+  * `orderId` (Long, 조회하고자 하는 주문의 고유 식별자)
+* **설명:**  
+  특정 주문(`orderId`)의 현재 상태와 상세 정보를 조회합니다.  
+  주문은 **비동기 처리**로 진행되며, 주문 생성 직후 초기 상태는 `PENDING`입니다.  
+  이후 재고 서비스(Inventory Service)가 Kafka 이벤트를 소비하여 재고 확인을 수행하고,  
+  그 결과에 따라 주문 상태가 최종적으로 업데이트됩니다.
+* **주문 상태(OrderStatus) 설명:**  
+  * `PENDING`: 주문이 생성되었으나, 아직 재고 확인 및 차감이 완료되지 않은 대기 상태  
+  * `SUCCESS`: 재고 서비스 확인 결과, 재고가 충분하여 주문이 정상적으로 확정된 상태  
+  * `CANCELED`: 재고 서비스 확인 결과, 재고 부족 사유로 주문이 취소된 상태
+* **Response:**  
+  * **200 OK**: 주문 조회 성공
+* **Response Body (JSON):**
+
+  * **성공 시**
+    ```json
+    {
+      "orderId": 101,
+      "totalPrice": 55000,
+      "orderStatus": "SUCCESS"
+    }
+    ```
+
+  * **재고 부족으로 취소 시**
+    ```json
+    {
+      "orderId": 102,
+      "totalPrice": 120000,
+      "orderStatus": "CANCELED"
+    }
+    ```
+
 
 ### 2. User Service API
 
@@ -389,60 +537,3 @@ JWT Secret Key는 .env 파일에 저장하고 이를 쿠버네티스 Secret으�
 ```bash
 kubectl create secret generic lucky-secret --from-env-file=.env
 ```
-
-=====
-
-### 해당 부분부터는 현재는 도커 컴포즈로 띄우고 추후에 쿠버네티스로 전환할 예정입니다.
-
-### 6. Order Service API
-
-#### 1) 주문 생성 (Create Order)
-* **URL:** `/api/orders`
-* **Method:** `POST`
-* **Header:**  
-  * `X-User-Id` (필수, 사용자 식별값)
-* **설명:**  
-  요청 헤더의 사용자 ID(`X-User-Id`)와 요청 본문의 주문 정보를 기반으로 주문을 생성합니다.   
-  주문 생성에 성공하면 주문 ID와 총 금액을 반환합니다.
-* **Request Body (JSON):**
-
-  ```json
-  {
-    "items": [
-      {
-        "productId": 11,
-        "productPrice": 2500,
-        "quantity": 10
-      },
-      {
-        "productId": 22,
-        "productPrice": 55000,
-        "quantity": 1
-      },
-      {
-        "productId": 35,
-        "productPrice": 12000,
-        "quantity": 3
-      }
-    ]
-  }
-  ```
-* **Response:**
-  * **200 OK**: 주문 생성 성공
-* **Response Body (JSON):**
-
-  ```json
-  {
-    "orderId": 28,
-    "totalPrice": 116000
-  }
-  ```
-
-Kafka 연동
-주문 생성 API(/api/orders)가 성공적으로 처리되면,
-Order Service는 주문 생성 이벤트를 Kafka로 발행합니다.
-
-이때 Kafka로 전달되는 메시지는 OrderKafkaDto를 기반으로 생성됩니다.
-
-Kafka 메시지 목적
-Inventory Service(Consumer): 상품의 재고 차감

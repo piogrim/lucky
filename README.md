@@ -1,13 +1,13 @@
 # lucky
 =======
 
-아키텍처 다이어그램
+아키텍처 다이어그램(2026.1.15)
 
 <img width="927" height="668" alt="스크린샷 2026-01-11 오전 5 40 15" src="https://github.com/user-attachments/assets/01e9394a-12e0-4f03-9383-6f2b1df4a181" />
 
 일반적으로 쿠버네티스에서 컨테이너 런타임으로 containerd를 사용하나 본 프로젝트는 minikube를 이용하고 컨테이너 런타임으로 docker를 사용했습니다.
 
-### 아키텍처 흐름
+## 아키텍처 흐름
 모든 요청은 **Nginx**를 통해 들어와 **Gateway**를 거쳐 **User Service**, **Board Service**로 전달됩니다.
  **쿠버네티스를 도입함으로 분산 환경에서 기능하는 것이 가능해졌습니다.**
 
@@ -26,6 +26,8 @@
    - Gateway가 검증하고 넘겨준 X-User-Name 헤더를 통해 작성자를 식별
    - 게시글 CRUD 로직 수행
 
+---
+
 ## Kubernetes를 도입하기까지
 
 Docker → Docker-compose → Kubernetes
@@ -36,6 +38,7 @@ Docker → Docker-compose → Kubernetes
 
 • Docker-Compose는 단일 호스트머신에서만 동작할 수 있기 때문에 추후 대규모 트래픽 처리를 위한 분산 환경에서는 사용이 불가능 → 분산 환경에서의 배포 관리를 위한 Kubernetes 도입
 
+---
 
 ## 2026.1.15 아키텍처 및 API 명세(Order-service, Inventory-service 추가)
 
@@ -49,8 +52,6 @@ Docker → Docker-compose → Kubernetes
 3. **트랜잭션 보장**  
    주문은 재고 확인 및 차감 과정을 거쳐야 하며,  
    부분 실패 없이 원자적(Atomic)으로 처리되어야 한다.
-
----
 
 ### 구현 방식
 
@@ -79,14 +80,12 @@ Docker → Docker-compose → Kubernetes
   - 주문 서비스에 성공 결과 전송
   - 주문 상태를 `SUCCESS`로 업데이트
 
----
 
 ### 주문 조회
 - 주문 조회 시,  
   재고 서비스가 Kafka를 통해 전달한 결과 메시지를 기반으로  
   주문 상태가 `SUCCESS` 또는 `CANCELED`인 주문을 확인할 수 있다.
 
----
 
 ### Kafka를 사용한 이유
 
@@ -103,7 +102,6 @@ Docker → Docker-compose → Kubernetes
    대량 데이터 처리에 유리한 Kafka를 선택
 
 ---
-
 
 ### 1. Order Service API
 
@@ -188,6 +186,7 @@ Docker → Docker-compose → Kubernetes
     }
     ```
 
+---
 
 ### 2. User Service API
 
@@ -351,6 +350,9 @@ Docker → Docker-compose → Kubernetes
   * **200 OK:** 삭제 성공 (Body 없음)
   * **403 Forbidden:** 본인이 작성하지 않은 글을 삭제 시도 시
 
+
+---
+
 ### 4. Board Service Comment API
 
 **Base URL:** `/board-service/api`
@@ -476,6 +478,8 @@ Docker → Docker-compose → Kubernetes
   - **200 OK:** 삭제 성공 (Body 없음)
   - **403 Forbidden:** 본인이 작성하지 않은 댓글을 삭제 시도 시
 
+---
+
 ### 5. Board Service API - Like
 
 #### 1) 좋아요 등록 (Like)
@@ -519,6 +523,8 @@ Docker → Docker-compose → Kubernetes
     "memberId": 123
   }
   ```
+
+---
 
 ## Minikube 설정
 

@@ -7,6 +7,7 @@ import com.lucky.order_service.order.dto.OrderCreateRequestDto;
 import com.lucky.order_service.order.dto.OrderKafkaDto;
 import com.lucky.order_service.order.dto.OrderResponseDto;
 import com.lucky.order_service.order.domain.OrderItem;
+import com.lucky.order_service.order.kafka.OrderMessageProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,24 +20,18 @@ import java.util.List;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class OrderServiceImpl implements OrderService {
+public class OrderServiceImpl {
 
-    private final ObjectMapper objectMapper;
     private final OrderRepository orderRepository;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final OrderMessageProducer orderMessageProducer;
 
     @Transactional
-    public OrderResponseDto saveOrder(String userId, OrderCreateRequestDto requestDto) {
+    public OrderResponseDto createOrder(String userId, OrderCreateRequestDto requestDto) {
         Order order = createOrderEntity(userId, requestDto.getItems());
 
         orderRepository.save(order);
 
-        try {
-            sendOrderEvents(order, requestDto.getItems());
-        } catch (Exception e) {
-            log.error("Kafka 전송 실패로 인한 롤백: {}", e.getMessage());
-            throw new RuntimeException("주문 처리 중 오류가 발생했습니다.");
-        }
+        sendOrderEvents(order, requestDto.getItems());
 
         return new OrderResponseDto(order.getId(), order.getTotalPrice(), order.getOrderStatus());
     }
@@ -79,20 +74,21 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void sendOrderEvents(Order order, List<OrderCreateRequestDto.OrderItemDto> itemDtos) {
-        for (OrderCreateRequestDto.OrderItemDto itemDto : itemDtos) {
-            OrderKafkaDto kafkaDto = new OrderKafkaDto(
-                    order.getId(),
-                    itemDto.getProductId(),
-                    itemDto.getQuantity(),
-                    itemDto.getProductPrice()
-            );
+        String topic = "order_create";
 
-            try {
-                String jsonMessage = objectMapper.writeValueAsString(kafkaDto);
-                kafkaTemplate.send("order_create", jsonMessage).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+        List<OrderKafkaDto.OrderItemDto> kafkaItems = itemDtos.stream()
+                .map(item -> new OrderKafkaDto.OrderItemDto(
+                        item.getProductId(),
+                        item.getProductPrice(),
+                        item.getQuantity()
+                ))
+                .toList();
+
+        OrderKafkaDto kafkaDto = new OrderKafkaDto(
+                order.getId(),
+                kafkaItems
+        );
+
+        orderMessageProducer.sendCreateEvent(topic, kafkaDto);
     }
 }

@@ -18,7 +18,7 @@ public class OrderController {
     public ResponseEntity<OrderResponseDto> createOrder(
             @RequestHeader("X-User-Id") String id,
             @RequestBody OrderCreateRequestDto requestDto) {
-        return ResponseEntity.ok(orderServiceImpl.saveOrder(id, requestDto));
+        return ResponseEntity.ok(orderServiceImpl.createOrder(id, requestDto));
     }
 
     @GetMapping("/{orderId}")

@@ -8,6 +8,5 @@ import lombok.Setter;
 public class InventoryKafkaDto {
 
     private Long orderId;
-    private Long productId;
     private String result;
 }

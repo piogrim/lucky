@@ -9,6 +9,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -26,41 +27,51 @@ public class InventoryService {
     @KafkaListener(topics = "order_create", groupId = "inventory-group")
     @Transactional
     public void consume(String message) {
-        OrderKafkaDto orderDto = objectMapper.readValue(message, OrderKafkaDto.class);
+        OrderKafkaDto orderDto = null;
         try {
-            log.info("Consumer: 주문 받음 orderId={}, productId={}, qty={}",
-                    orderDto.getOrderId(), orderDto.getProductId(), orderDto.getQuantity());
+            orderDto = objectMapper.readValue(message, OrderKafkaDto.class);
+            log.info("Consumer: 주문 수신 OrderId={}", orderDto.getOrderId());
 
-            Inventory inventory = inventoryRepository.findByProductId(orderDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
+            for (OrderKafkaDto.OrderItemDto item : orderDto.getItems()) {
 
-            inventory.decrease(orderDto.getQuantity());
+                Inventory inventory = inventoryRepository.findById(item.getProductId())
+                        .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다. ID=" + item.getProductId()));
 
-            inventoryHistoryRepository.save(new InventoryHistory(
-                    orderDto.getOrderId(),
-                    orderDto.getProductId(),
-                    orderDto.getQuantity(),
-                    HistoryStatus.DEDUCTED
-            ));
+                inventory.decrease(item.getQuantity());
 
-            InventoryKafkaDto successDto = new InventoryKafkaDto(orderDto.getOrderId(), orderDto.getProductId(), "SUCCESS");
-            String jsonResult = objectMapper.writeValueAsString(successDto);
+                inventoryHistoryRepository.save(
+                        new InventoryHistory(
+                                orderDto.getOrderId(),
+                                item.getProductId(),
+                                item.getQuantity(),
+                                HistoryStatus.DEDUCTED
+                        )
+                );
+            }
 
-            kafkaTemplate.send("inventory_result", jsonResult);
+            InventoryKafkaDto successDto = new InventoryKafkaDto(orderDto.getOrderId(), "SUCCESS");
+            kafkaTemplate.send("inventory_result", objectMapper.writeValueAsString(successDto));
+            log.info("주문({}) 재고 차감 완료", orderDto.getOrderId());
 
         } catch (Exception e) {
-            log.error("재고 차감 실패: {}", e.getMessage());
+            log.error("재고 차감 처리 실패");
+
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
 
             if (orderDto != null) {
-                try {
-                    InventoryKafkaDto failDto = new InventoryKafkaDto(orderDto.getOrderId(), orderDto.getProductId(), "FAIL");
-                    String jsonResult = objectMapper.writeValueAsString(failDto);
-
-                    kafkaTemplate.send("inventory_result", jsonResult);
-                } catch (Exception sendError) {
-                    log.error("실패 응답 전송 중 에러 발생", sendError);
-                }
+                sendFailMessage(orderDto.getOrderId());
             }
+        }
+    }
+
+    private void sendFailMessage(Long orderId) {
+        try {
+            InventoryKafkaDto failDto = new InventoryKafkaDto(orderId, "FAIL");
+            String jsonResult = objectMapper.writeValueAsString(failDto);
+            kafkaTemplate.send("inventory_result", jsonResult);
+            log.info("주문({}) 실패 메시지 전송 완료", orderId);
+        } catch (Exception e) {
+            log.error("실패 메시지 전송 중 에러", e);
         }
     }
 

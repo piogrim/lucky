@@ -105,6 +105,7 @@ Docker → Docker-compose → Kubernetes
    대량 데이터 처리에 유리한 Kafka를 선택
 
 <div id="load-test"></div>
+
 ## 부하 테스트
 
 대규모 트래픽 상황에서 주문 시스템의 안정성과 데이터 정합성을 검증하기 위해 **k6**를 사용하여 부하 테스트를 수행했습니다.

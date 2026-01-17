@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -19,6 +20,9 @@ import java.util.List;
 @Slf4j
 public class InventoryService {
 
+    private static final String SUCCESS = "SUCCESS";
+    private static final String FAIL = "FAIL";
+
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final InventoryRepository inventoryRepository;
     private final InventoryHistoryRepository inventoryHistoryRepository;
@@ -26,16 +30,24 @@ public class InventoryService {
 
     @KafkaListener(topics = "order_create", groupId = "inventory-group")
     @Transactional
-    public void consume(String message) {
+    public void consume(String message, Acknowledgment ack) {
         OrderKafkaDto orderDto = null;
         try {
             orderDto = objectMapper.readValue(message, OrderKafkaDto.class);
+
+            if(inventoryHistoryRepository.existsByOrderId(orderDto.getOrderId())) {
+                log.info("이미 처리된 주문입니다.");
+                sendMessage(orderDto.getOrderId(), FAIL);
+                ack.acknowledge();
+                return;
+            }
+
             log.info("Consumer: 주문 수신 OrderId={}", orderDto.getOrderId());
 
             for (OrderKafkaDto.OrderItemDto item : orderDto.getItems()) {
 
-                Inventory inventory = inventoryRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다. ID=" + item.getProductId()));
+                Inventory inventory = inventoryRepository.findByProductIdWithLock(item.getProductId())
+                        .orElseThrow(() -> new RuntimeException("상품 없음"));
 
                 inventory.decrease(item.getQuantity());
 
@@ -49,29 +61,28 @@ public class InventoryService {
                 );
             }
 
-            InventoryKafkaDto successDto = new InventoryKafkaDto(orderDto.getOrderId(), "SUCCESS");
-            kafkaTemplate.send("inventory_result", objectMapper.writeValueAsString(successDto));
+            sendMessage(orderDto.getOrderId(), SUCCESS);
+            ack.acknowledge();
             log.info("주문({}) 재고 차감 완료", orderDto.getOrderId());
-
         } catch (Exception e) {
             log.error("재고 차감 처리 실패");
 
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
 
             if (orderDto != null) {
-                sendFailMessage(orderDto.getOrderId());
+                sendMessage(orderDto.getOrderId(), FAIL);
+                ack.acknowledge();
             }
         }
     }
 
-    private void sendFailMessage(Long orderId) {
+    private void sendMessage(Long orderId, String message) {
         try {
-            InventoryKafkaDto failDto = new InventoryKafkaDto(orderId, "FAIL");
-            String jsonResult = objectMapper.writeValueAsString(failDto);
+            InventoryKafkaDto dto = new InventoryKafkaDto(orderId, message);
+            String jsonResult = objectMapper.writeValueAsString(dto);
             kafkaTemplate.send("inventory_result", jsonResult);
-            log.info("주문({}) 실패 메시지 전송 완료", orderId);
         } catch (Exception e) {
-            log.error("실패 메시지 전송 중 에러", e);
+            log.error("메시지 전송 중 에러", e);
         }
     }
 

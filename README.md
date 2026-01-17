@@ -107,7 +107,7 @@ Docker → Docker-compose → Kubernetes
 
 <div id="load-test"></div>
 
-## 부하 테스트, 동시성 제어 테스트, 장애 격리 테스트
+## 부하 테스트, 동시성 제어 테스트, 장애 격리 테스트(예정)
 
 대규모 트래픽 상황에서 주문 시스템의 안정성과 데이터 정합성을 검증하기 위해 **k6**를 사용하여 부하 테스트를 수행했습니다.
 k6-test-script/order-test-10k.js를 사용했습니다.

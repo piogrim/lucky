@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -46,6 +47,8 @@ public class InventoryService {
 
             log.info("Consumer: 주문 수신 OrderId={}", orderDto.getOrderId());
 
+            orderDto.getItems().sort(Comparator.comparing(OrderKafkaDto.OrderItemDto::getProductId));
+
             for (OrderKafkaDto.OrderItemDto item : orderDto.getItems()) {
 
                 Inventory inventory = inventoryRepository.findByProductIdWithLock(item.getProductId())
@@ -73,8 +76,9 @@ public class InventoryService {
 
             if (orderDto != null) {
                 sendMessage(orderDto.getOrderId(), FAIL);
-                ack.acknowledge();
+                //ack.acknowledge();
             }
+            ack.acknowledge();
         }
     }
 

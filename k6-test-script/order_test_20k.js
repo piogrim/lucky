@@ -9,7 +9,7 @@ export const options = {
       
       vus: 5000, 
       
-      iterations: 20000, 
+      iterations: 40000, 
       
       maxDuration: '10m', 
     },

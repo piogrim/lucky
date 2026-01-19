@@ -9,5 +9,5 @@ import java.util.List;
 public interface InventoryHistoryRepository extends JpaRepository<InventoryHistory, Long> {
     List<InventoryHistory> findAllByOrderIdAndStatus(Long orderId, HistoryStatus historyStatus);
 
-    boolean existsByOrderId(Long orderId);
+    InventoryHistory findByOrderId(Long orderId);
 }

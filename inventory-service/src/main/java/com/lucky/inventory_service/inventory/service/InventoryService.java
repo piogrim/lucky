@@ -35,9 +35,11 @@ public class InventoryService {
         try {
             orderDto = objectMapper.readValue(message, OrderKafkaDto.class);
 
-            if(inventoryHistoryRepository.existsByOrderId(orderDto.getOrderId())) {
+            InventoryHistory history = inventoryHistoryRepository.findByOrderId(orderDto.getOrderId());
+
+            if(history != null && history.getStatus() == HistoryStatus.DEDUCTED) {
                 log.info("이미 처리된 주문입니다.");
-                sendMessage(orderDto.getOrderId(), FAIL);
+                sendMessage(orderDto.getOrderId(), SUCCESS);
                 ack.acknowledge();
                 return;
             }

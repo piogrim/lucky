@@ -99,9 +99,12 @@ public class InventoryService {
             for (InventoryHistory history : histories) {
                 Inventory inventory = inventoryRepository.findByProductId(history.getProductId())
                         .orElseThrow();
-                inventory.increase(history.getQuantity());
 
-                history.restore();
+                if(history.getStatus() == HistoryStatus.DEDUCTED) {
+                    inventory.increase(history.getQuantity());
+                    history.restore();
+                }
+
                 log.info("상품 {}에 대한 재고 복구 완료", history.getProductId());
             }
         } catch (Exception e) {

@@ -36,9 +36,7 @@ public class OrderEventListener {
 
             if ("FAIL".equals(inventoryKafkaDto.getResult())) {
                 log.info("재고 차감 실패로 인한 주문 취소. OrderId: {}", orderId);
-
                 order.setOrderStatus(OrderStatus.CANCELED);
-                orderRepository.save(order);
                 return;
             }
 
@@ -47,7 +45,6 @@ public class OrderEventListener {
             //TODO : 결제처리 추가
 
             order.setOrderStatus(OrderStatus.SUCCESS);
-            orderRepository.save(order);
 
         } catch (Exception e) {
             log.error("Kafka 메시지 처리 중 오류 발생: {}", message, e);

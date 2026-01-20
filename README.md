@@ -196,6 +196,20 @@ Docker → Docker-compose → Kubernetes
 
 ---
 
+## 모니터링 문제 발생
+
+### CPU 사용량과 메모리 사용량
+
+* 문제1 : 아래와 같이 docker stats로 컨테이너들의 메모리와 CPU 사용량을 볼 수 있긴 하지만 일시적인 값만 볼 수 있어 갑자기 CPU 사용량이 튀거나 메모리 사용량이 튀는 경우를 분석하기가 어렵습니다.
+
+<img width="678" height="109" alt="스크린샷 2026-01-20 오후 6 24 42" src="https://github.com/user-attachments/assets/f14ea961-cb4f-4c86-9c71-7f159d3c03bd" />
+
+* 해결1 : Prometheus, Grafana 도입, 모니터링 툴로 시계열 DB Prometheus로 스프링 컨테이너에서 actuator의 마이크로미터를 이용해 수집한 데이터를 가져오고 그걸 Grafana로 시각화해 분석을 쉽게 할 수 있도록 합니다.
+
+(추가예정입니다.)
+
+---
+
 ### 1. Order Service API
 
 #### 1) 주문 생성 (Create Order)

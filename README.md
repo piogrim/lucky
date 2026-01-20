@@ -114,6 +114,10 @@ Docker → Docker-compose → Kubernetes
 * 데이터 무결성(Data Integrity): 분산된 데이터베이스(Order ↔ Inventory) 간의 데이터 불일치 및 초과 판매(Overselling) 방지.
 
 #### 테스트 환경 및 설정
+
+* 4코어 8GB 메모리 환경
+<img width="1025" height="109" alt="스크린샷 2026-01-20 오전 4 57 45" src="https://github.com/user-attachments/assets/1d4ba298-ac16-4747-8d22-bb4b481de6cf" />
+
 * **테스트 도구:** k6
 * **시나리오 실행기:** `shared-iterations` (총 목표 요청 수를 설정하여 수행)
 * **동시 접속자 (VUs):** 5,000명
@@ -189,6 +193,20 @@ Docker → Docker-compose → Kubernetes
 발견된 문제점:
 
 비관적 락은 DB 레벨에서 잠금을 걸기 때문에 요청이 몰릴 경우 앞선 트랜잭션이 끝날 때까지 다른 요청들이 대기하게 되어 응답 지연(Latency)이 길게 발생함.
+
+---
+
+## 모니터링 문제 발생
+
+### CPU 사용량과 메모리 사용량
+
+* 문제1 : 아래와 같이 docker stats로 컨테이너들의 메모리와 CPU 사용량을 볼 수 있긴 하지만 일시적인 값만 볼 수 있어 갑자기 CPU 사용량이 튀거나 메모리 사용량이 튀는 경우를 분석하기가 어렵습니다.
+
+<img width="678" height="109" alt="스크린샷 2026-01-20 오후 6 24 42" src="https://github.com/user-attachments/assets/f14ea961-cb4f-4c86-9c71-7f159d3c03bd" />
+
+* 해결1 : Prometheus, Grafana 도입, 모니터링 툴로 시계열 DB Prometheus로 스프링 컨테이너에서 actuator의 마이크로미터를 이용해 수집한 데이터를 가져오고 그걸 Grafana로 시각화해 분석을 쉽게 할 수 있도록 합니다.
+
+(추가예정입니다.)
 
 ---
 

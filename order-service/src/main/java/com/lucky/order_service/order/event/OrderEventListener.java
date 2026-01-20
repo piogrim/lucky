@@ -48,6 +48,7 @@ public class OrderEventListener {
 
         } catch (Exception e) {
             log.error("Kafka 메시지 처리 중 오류 발생: {}", message, e);
+            throw new RuntimeException("메시지 처리 실패", e);
         }
     }
 }

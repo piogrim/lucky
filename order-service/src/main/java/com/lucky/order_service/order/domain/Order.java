@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+//Order 엔티티는 주문 정보 자체에 관심이 있는 것이고 이벤트 메세지에는 관심이 없다.(SRP)
 @Entity
 @Setter
 @Getter

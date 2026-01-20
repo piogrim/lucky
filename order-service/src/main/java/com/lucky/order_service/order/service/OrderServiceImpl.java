@@ -7,11 +7,13 @@ import com.lucky.order_service.order.dto.OrderCreateRequestDto;
 import com.lucky.order_service.order.dto.OrderKafkaDto;
 import com.lucky.order_service.order.dto.OrderResponseDto;
 import com.lucky.order_service.order.domain.OrderItem;
-import com.lucky.order_service.order.kafka.OrderMessageProducer;
+import com.lucky.order_service.outbox.domain.OutboxEvent;
+import com.lucky.order_service.outbox.domain.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -21,7 +23,8 @@ import java.util.List;
 public class OrderServiceImpl {
 
     private final OrderRepository orderRepository;
-    private final OrderMessageProducer orderMessageProducer;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public OrderResponseDto createOrder(String userId, OrderCreateRequestDto requestDto) {
@@ -29,7 +32,21 @@ public class OrderServiceImpl {
 
         orderRepository.save(order);
 
-        sendOrderEvents(order, requestDto.getItems());
+        OutboxEvent outboxEvent = new OutboxEvent("order_create", "ORDER",
+                objectMapper.writeValueAsString(
+                new OrderKafkaDto(
+                        order.getId(),
+                        requestDto.getItems().stream()
+                                .map(item -> new OrderKafkaDto.OrderItemDto(
+                                        item.getProductId(),
+                                        item.getProductPrice(),
+                                        item.getQuantity()
+                                ))
+                                .toList()
+                )
+        ));
+
+        outboxEventRepository.save(outboxEvent);
 
         return new OrderResponseDto(order.getId(), order.getTotalPrice(), order.getOrderStatus());
     }
@@ -69,24 +86,5 @@ public class OrderServiceImpl {
 
         order.setTotalPrice(totalPrice);
         return order;
-    }
-
-    private void sendOrderEvents(Order order, List<OrderCreateRequestDto.OrderItemDto> itemDtos) {
-        String topic = "order_create";
-
-        List<OrderKafkaDto.OrderItemDto> kafkaItems = itemDtos.stream()
-                .map(item -> new OrderKafkaDto.OrderItemDto(
-                        item.getProductId(),
-                        item.getProductPrice(),
-                        item.getQuantity()
-                ))
-                .toList();
-
-        OrderKafkaDto kafkaDto = new OrderKafkaDto(
-                order.getId(),
-                kafkaItems
-        );
-
-        orderMessageProducer.sendCreateEvent(topic, kafkaDto);
     }
 }

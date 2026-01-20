@@ -114,6 +114,10 @@ Docker → Docker-compose → Kubernetes
 * 데이터 무결성(Data Integrity): 분산된 데이터베이스(Order ↔ Inventory) 간의 데이터 불일치 및 초과 판매(Overselling) 방지.
 
 #### 테스트 환경 및 설정
+
+* 4코어 8GB 메모리 환경
+<img width="1025" height="109" alt="스크린샷 2026-01-20 오전 4 57 45" src="https://github.com/user-attachments/assets/1d4ba298-ac16-4747-8d22-bb4b481de6cf" />
+
 * **테스트 도구:** k6
 * **시나리오 실행기:** `shared-iterations` (총 목표 요청 수를 설정하여 수행)
 * **동시 접속자 (VUs):** 5,000명

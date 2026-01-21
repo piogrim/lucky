@@ -3,6 +3,9 @@ package com.lucky.inventory_service.inventory.service;
 import com.lucky.inventory_service.inventory.domain.*;
 import com.lucky.inventory_service.inventory.dto.InventoryKafkaDto;
 import com.lucky.inventory_service.inventory.dto.OrderKafkaDto;
+import com.lucky.inventory_service.outbox.domain.OutboxEvent;
+import com.lucky.inventory_service.outbox.domain.OutboxEventRepository;
+import com.lucky.inventory_service.outbox.service.OutboxEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -24,14 +27,17 @@ public class InventoryService {
     private static final String SUCCESS = "SUCCESS";
     private static final String FAIL = "FAIL";
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private static final String INVENTORY_DEDUCTION_RESULT = "inventory_result";
+    private static final String INVENTORY_DEDUCTION = "inventory_deduction";
+
     private final InventoryRepository inventoryRepository;
     private final InventoryHistoryRepository inventoryHistoryRepository;
+    private final OutboxEventService outboxEventService;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "order_create", groupId = "inventory-group")
     @Transactional
-    public void consume(String message, Acknowledgment ack) {
+    public void consume(String message) {
         OrderKafkaDto orderDto = null;
         try {
             orderDto = objectMapper.readValue(message, OrderKafkaDto.class);
@@ -40,8 +46,14 @@ public class InventoryService {
 
             if(history != null && history.getStatus() == HistoryStatus.DEDUCTED) {
                 log.info("이미 처리된 주문입니다.");
-                sendMessage(orderDto.getOrderId(), SUCCESS);
-                ack.acknowledge();
+
+
+                saveEvent(INVENTORY_DEDUCTION_RESULT, INVENTORY_DEDUCTION,
+                        objectMapper.writeValueAsString(
+                                new InventoryKafkaDto(orderDto.getOrderId(), SUCCESS)
+                        )
+                );
+
                 return;
             }
 
@@ -66,8 +78,12 @@ public class InventoryService {
                 );
             }
 
-            sendMessage(orderDto.getOrderId(), SUCCESS);
-            ack.acknowledge();
+            saveEvent(INVENTORY_DEDUCTION_RESULT, INVENTORY_DEDUCTION,
+                    objectMapper.writeValueAsString(
+                            new InventoryKafkaDto(orderDto.getOrderId(), SUCCESS)
+                    )
+            );
+
             log.info("주문({}) 재고 차감 완료", orderDto.getOrderId());
         } catch (Exception e) {
             log.error("재고 차감 처리 실패");
@@ -75,23 +91,26 @@ public class InventoryService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
 
             if (orderDto != null) {
-                sendMessage(orderDto.getOrderId(), FAIL);
-                //ack.acknowledge();
+                //롤백되더라도 실패 이벤트는 남겨야 하므로 별도의 트랜잭션으로 처리
+                outboxEventService.saveError(
+                        new OutboxEvent(
+                                INVENTORY_DEDUCTION_RESULT,
+                                INVENTORY_DEDUCTION,
+                                objectMapper.writeValueAsString(
+                                        new InventoryKafkaDto(orderDto.getOrderId(), FAIL)
+                                )
+                        )
+                );
             }
-            ack.acknowledge();
         }
     }
 
-    private void sendMessage(Long orderId, String message) {
-        try {
-            InventoryKafkaDto dto = new InventoryKafkaDto(orderId, message);
-            String jsonResult = objectMapper.writeValueAsString(dto);
-            kafkaTemplate.send("inventory_result", jsonResult);
-        } catch (Exception e) {
-            log.error("메시지 전송 중 에러", e);
-        }
+    private void saveEvent(String topic, String type, String payload) {
+        OutboxEvent event = new OutboxEvent(topic, type, payload);
+        outboxEventService.save(event);
     }
 
+    //추후 재고 복구가 필요한 경우를 대비한 롤백 처리 리스너
     @KafkaListener(topics = "inventory_rollback", groupId = "inventory-group")
     @Transactional
     public void rollback(String message) {

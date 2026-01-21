@@ -1,3 +1,7 @@
+server:
+  tomcat:
+    threads:
+      max: 200
 spring:
   application:
     name: inventory-service
@@ -6,6 +10,8 @@ spring:
     url: jdbc:mysql://inventory-mysql:3306/inventory_service?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: root
     password: 1234
+    hikari:
+      maximum-pool-size: 50
   jpa:
     hibernate:
       ddl-auto: update
@@ -21,4 +27,4 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       enable-auto-commit: false
     listener:
-      ack-mode: MANUAL_IMMEDIATE
+      ack-mode: record

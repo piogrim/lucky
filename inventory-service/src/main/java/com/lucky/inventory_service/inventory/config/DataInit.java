@@ -17,7 +17,7 @@ class DataInit implements CommandLineRunner {
 
     @Override
     public void run(String... args){
-        for(Long i = 0L; i < 100L; i++) {
+        for(Long i = 0L; i <= 1000L; i++) {
             if (inventoryRepository.findByProductId(i).isEmpty()) {
                 inventoryRepository.save(new Inventory(i, 300L));
             }

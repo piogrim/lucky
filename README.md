@@ -1,11 +1,15 @@
 # lucky
-=======
 
-# k6 테스트 내용이 추가되었습니다. 
-# [k6 테스트로 건너뛰기](#load-test)
+1. [아키텍처 흐름](#아키텍처-흐름)
+2. [Kubernetes를 도입하기까지](#kubernetes를-도입하기까지)
+3. [Order-Service와 Inventory-Service 그리고 Kafka](#order-service와-inventory-service-그리고-kafka)
+4. [k6 테스트](#k6-테스트)
+5. [모니터링 문제 발생](#모니터링-문제-발생)
+6. [Outbox 패턴 도입](#outbox-패턴-도입)
+7. [API 명세서](#api-명세서)
+
 
 아키텍처 다이어그램(2026.1.15)
-
 
 <img width="2654" height="1468" alt="프로젝트 다이어그램 (1)" src="https://github.com/user-attachments/assets/2b711561-0f55-40c6-abab-4a0dbd44f157" />
 
@@ -14,6 +18,8 @@
 ## 아키텍처 흐름
 모든 요청은 **Nginx**를 통해 들어와 **Gateway**를 거쳐 **User Service**, **Board Service**로 전달됩니다.
  **쿠버네티스를 도입함으로 분산 환경에서 기능하는 것이 가능해졌습니다.**
+
+(order-service와 inventory-service, kafka 설명은 목차에서 3번에 있습니다!)
 
 1. **Nginx (Port 80)**
    - 모든 외부 HTTP 요청을 수신
@@ -44,9 +50,7 @@ Docker → Docker-compose → Kubernetes
 
 ---
 
-## 2026.1.15 아키텍처 및 API 명세(Order-service, Inventory-service 추가)
-
-### Order-Service와 Inventory-Service 그리고 Kafka
+## Order-Service와 Inventory-Service 그리고 Kafka
 
 ### 요구 사항
 1. **다중 상품 주문**  
@@ -105,9 +109,7 @@ Docker → Docker-compose → Kubernetes
 5. RabbitMQ와 Kafka 중  
    대량 데이터 처리에 유리한 Kafka를 선택
 
-<div id="load-test"></div>
-
-## 무결성 테스트
+## k6 테스트
 
 #### 테스트 목적
 * 본 테스트는 분산 환경에서 Kafka를 활용한 비동기 주문 시스템이 대규모 동시성 상황(Race Condition)에서 다음과 같은 요구사항을 충족하는지 검증하기 위해 수행되었습니다.
@@ -131,7 +133,7 @@ Docker → Docker-compose → Kubernetes
     * 주문 수량: 1~3개 랜덤
 3.  **검증 목표:** API 응답(200 OK) 확인 및 백그라운드(Kafka, Inventory)에서의 데이터 처리 완결성 검증.
 
-## 무결성 테스트 결과
+## k6 테스트
 
 ### 1. 주문 처리 결과 조회 (Order DB)
 <img width="508" height="95" alt="스크린샷 2026-01-16 오후 5 18 51" src="https://github.com/user-attachments/assets/148f08db-7ef2-478c-8f88-fe7d8b08e014" />
@@ -209,6 +211,32 @@ Docker → Docker-compose → Kubernetes
 (추가예정입니다.)
 
 ---
+<div id="outbox"></div>
+
+## Outbox 패턴 도입
+
+### 1. 문제 상황
+기존 `OrderServiceImpl`의 `createOrder` 메서드는 `@Transactional`이 적용되어 있어 모든 작업이 원자적으로 실행되는 것처럼 보이나, 실제로는 그렇지 않았습니다.
+
+* **데이터 불일치 위험**: DB 트랜잭션 수행 중 예외가 발생하여 주문 저장이 **롤백**되더라도 Kafka 브로커로 이미 전송된 메시지는 **회수할 수 없습니다.**
+* 즉, DB에는 주문 데이터가 없는데 Kafka 메시지만 발행되는 심각한 데이터 정합성 문제가 발생할 수 있습니다.
+
+### 2. 해결 방안
+이 문제는 DB 저장 실패 시에도 메시지가 전송되는 것이 원인이었습니다. 따라서 **DB 저장이 확실하게 보장된 후에만 Kafka로 메시지를 전달**하도록 로직을 변경해야 했습니다.
+
+### 3. 의사결정 과정
+문제를 해결하기 위해 **Outbox Pattern**을 검토했으나, 구현해야 할 코드량이 많아 고민이 있었습니다. 이에 대한 대안과 최종 결정 과정은 다음과 같습니다.
+
+* **대안 검토**: `Order` 엔티티 자체에 '메시지 전송 상태' 필드를 추가하는 간단한 방법을 고려했습니다.
+* **문제점 발견 (SRP 위반)**:
+    * `Order` 엔티티에 전송 상태 필드를 추가하면 **단일 책임 원칙(SRP)**에 위배됩니다.
+    * `Order` 엔티티가 '주문 도메인의 변화'뿐만 아니라 'Kafka 메시지 로직의 변화'에도 영향을 받게 되기 때문입니다.
+    * 엔티티를 수정해야 하는 이유가 두 가지가 되는 것은 추후 유지보수 관점에서 좋지 않다고 판단했습니다.
+* **최종 결정**: 당장 작성해야 할 코드가 늘어나더라도 향후 유지보수성과 도메인 로직의 순수성을 지키기 위해 별도의 테이블과 로직을 사용하는 **Outbox Pattern**을 적용했습니다.
+
+---
+
+## API 명세서
 
 ### 1. Order Service API
 

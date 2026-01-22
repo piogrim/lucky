@@ -9,9 +9,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -21,21 +22,33 @@ public class OutboxPublisher {
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaMessageProducer kafkaMessageProducer;
 
-    //2초마다 대기중인 Outbox 이벤트를 조회하여 Kafka로 메세지 발행
-    @Scheduled(fixedDelay = 2000)
-    @Transactional
+    //0.01초마다 대기중인 Outbox 이벤트를 조회하여 Kafka로 메세지 발행
+    @Scheduled(fixedDelay = 10)
     public void publishOutboxEvents() {
-        Pageable pageable = PageRequest.of(0, 50);
+        Pageable pageable = PageRequest.of(0, 100);
         List<OutboxEvent> events = outboxEventRepository.findAllByStatusOrderByIdAsc(EventStatus.PENDING, pageable);
 
-        for (OutboxEvent event : events) {
-            try {
-                log.info("Publishing outbox event {}", event.getId());
-                kafkaMessageProducer.send(event.getTopic(), event.getPayloadJson());
-                event.markSent();
-            } catch (Exception e) {
-                event.markFailed();
-            }
+        if (events.isEmpty()) {
+            return;
         }
+
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (OutboxEvent event : events) {
+            CompletableFuture<Void> future = kafkaMessageProducer.send(event.getTopic(), event.getPayloadJson())
+                    .thenAccept(result -> { // 성공 시 (thenAccept는 예외 발생 시 실행 안 됨)
+                        event.markSent();
+                        outboxEventRepository.save(event);
+                        log.info("전송 성공: {}", event.getId());
+                    })
+                    .exceptionally(ex -> { // 실패 시
+                        log.error("전송 실패: {}", event.getId(), ex);
+                        return null; // 예외 처리 후 넘어가기
+                    });
+
+            futures.add(future);
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 }

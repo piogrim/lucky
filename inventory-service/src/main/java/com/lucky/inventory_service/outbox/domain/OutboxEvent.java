@@ -37,6 +37,10 @@ public class OutboxEvent {
         this.status = EventStatus.SENT;
     }
 
+    public void markSending() {
+        this.status = EventStatus.SENDING;
+    }
+
     public void markFailed() {
         this.status = EventStatus.FAILED;
     }

@@ -10,9 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -32,23 +30,47 @@ public class OutboxPublisher {
             return;
         }
 
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for(OutboxEvent event : events) {
+            event.markSending();
+        }
+        outboxEventRepository.saveAll(events);
 
         for (OutboxEvent event : events) {
-            CompletableFuture<Void> future = kafkaMessageProducer.send(event.getTopic(), event.getPayloadJson())
-                    .thenAccept(result -> { // 성공 시 (thenAccept는 예외 발생 시 실행 안 됨)
+            kafkaMessageProducer.send(event.getTopic(), event.getPayloadJson())
+                    .thenAccept(result -> {
                         event.markSent();
                         outboxEventRepository.save(event);
                         log.info("전송 성공: {}", event.getId());
                     })
-                    .exceptionally(ex -> { // 실패 시
+                    .exceptionally(ex -> {
                         log.error("전송 실패: {}", event.getId(), ex);
-                        return null; // 예외 처리 후 넘어가기
+                        return null;
                     });
-
-            futures.add(future);
         }
 
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    }
+
+    //60초마다 처리중인 Outbox 이벤트를 조회하여 Kafka로 메세지 재발행
+    @Scheduled(fixedDelay = 60000)
+    public void publishOutboxEventsWithDelay() {
+        Pageable pageable = PageRequest.of(0, 100);
+        List<OutboxEvent> events = outboxEventRepository.findAllByStatusOrderByIdAsc(EventStatus.SENDING, pageable);
+
+        if (events.isEmpty()) {
+            return;
+        }
+
+        for (OutboxEvent event : events) {
+            kafkaMessageProducer.send(event.getTopic(), event.getPayloadJson())
+                    .thenAccept(result -> {
+                        event.markSent();
+                        outboxEventRepository.save(event);
+                        log.info("전송 성공: {}", event.getId());
+                    })
+                    .exceptionally(ex -> {
+                        log.error("전송 실패: {}", event.getId(), ex);
+                        return null;
+                    });
+        }
     }
 }

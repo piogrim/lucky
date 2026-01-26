@@ -116,7 +116,7 @@ Docker → Docker-compose → Kubernetes
 ## k6 테스트
 
 #### 테스트 목적
-* 본 테스트는 분산 환경에서 Kafka를 활용한 비동기 주문 시스템이 대규모 동시성 상황(Race Condition)에서 다음과 같은 요구사항을 충족하는지 검증하기 위해 수행되었습니다.
+* 본 테스트는 분산 환경에서 Kafka를 활용한 비동기 주문 시스템이 동시성 상황(Race Condition)에서 다음과 같은 요구사항을 충족하는지 검증하기 위해 수행되었습니다.
 * 데이터 무결성(Data Integrity): 분산된 데이터베이스(Order ↔ Inventory) 간의 데이터 불일치 및 초과 판매(Overselling) 방지.
 
 #### 테스트 환경 및 설정
